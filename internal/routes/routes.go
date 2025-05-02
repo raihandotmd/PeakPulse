@@ -11,11 +11,18 @@ import (
 // Setup registers all routes on the provided router
 func Setup(r *gin.Engine) {
 	initSupabase := db.InitSupabase()
+	initGorm := db.InitGorm()
 
 	// auth
 	authH := handlers.NewAuthHandler(initSupabase)
-	r.POST("/signup", authH.Signup)
-	r.POST("/login", authH.Login)
+	auth := r.Group("/auth")
+	{
+		auth.POST("/signup", authH.Signup)
+		auth.POST("/login", authH.Login)
+	}
+
+	// plan routes
+	planH := handlers.NewPlanHandler(initGorm)
 
 	// protected routes
 	a := r.Group("/api/v1")
@@ -23,6 +30,12 @@ func Setup(r *gin.Engine) {
 	{
 		exH := handlers.NewExerciseHandler(initSupabase)
 		a.GET("/exercises", exH.ListExercises)
+
 		// TODO: add workout plans, schedules, sessions
+		a.POST("/plans", planH.CreatePlan)
+		a.GET("/plans", planH.ListPlans)
+		a.GET("/plans/:id", planH.GetPlan)
+		a.PUT("/plans/:id", planH.UpdatePlan)
+		a.DELETE("/plans/:id", planH.DeletePlan)
 	}
 }

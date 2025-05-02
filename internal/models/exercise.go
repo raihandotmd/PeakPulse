@@ -16,3 +16,7 @@ type Exercise struct {
 	CreatedAt   time.Time `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
 }
+
+func (Exercise) TableName() string {
+	return "exercises"
+}

@@ -34,10 +34,10 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	DB := db.GetGormDB() // Get the Gorm DB instance
+	DB := db.GetGormClient() // Get the Gorm DB instance
 	// Check if the email already exists in the database
 	var existUser models.User
-	if err := DB.Table("users").Where("email = ?", body.Email).First(&existUser).Error; err == nil {
+	if err := DB.Where("email = ?", body.Email).First(&existUser).Error; err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
 		return
 	}

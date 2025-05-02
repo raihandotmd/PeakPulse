@@ -12,7 +12,7 @@ import (
 var DB *gorm.DB
 
 // InitGorm initializes GORM with the DSN from env
-func InitGorm() {
+func InitGorm() *gorm.DB {
 	config.Load()
 	dsn := os.Getenv("DB_DSN")
 
@@ -21,10 +21,12 @@ func InitGorm() {
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
+
+	return DB
 }
 
 // GetDB returns the GORM DB instance
-func GetGormDB() *gorm.DB {
+func GetGormClient() *gorm.DB {
 	if DB == nil {
 		log.Fatal("GORM DB is not initialized")
 	}
