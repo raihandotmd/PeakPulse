@@ -1,0 +1,451 @@
+basePath: /
+definitions:
+  gin.H:
+    additionalProperties: {}
+    type: object
+  models.AuthUser:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.CreatePlanRequest:
+    properties:
+      description:
+        type: string
+      exercises:
+        items:
+          $ref: '#/definitions/models.PlanExerciseInput'
+        type: array
+      title:
+        type: string
+    required:
+    - exercises
+    - title
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        description: Error message
+        type: string
+    type: object
+  models.Exercise:
+    properties:
+      category:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      muscleGroup:
+        type: string
+      name:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  models.ExerciseListResponse:
+    properties:
+      count:
+        description: |-
+          The total number of exercises
+          required: true
+        type: integer
+      data:
+        description: |-
+          The list of all exercises
+          required: true
+        items:
+          $ref: '#/definitions/models.Exercise'
+        type: array
+    type: object
+  models.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  models.LoginResponse:
+    properties:
+      token:
+        description: JWT access token
+        type: string
+    type: object
+  models.PlanExerciseInput:
+    properties:
+      exercise_id:
+        type: string
+      reps:
+        type: integer
+      sets:
+        type: integer
+    required:
+    - exercise_id
+    - reps
+    - sets
+    type: object
+  models.SignupRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  models.SignupResponse:
+    properties:
+      message:
+        description: Success message
+        type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/models.User'
+        description: Created user object
+    type: object
+  models.UpdatePlanRequest:
+    properties:
+      description:
+        description: Optional
+        type: string
+      exercises:
+        description: Optional
+        items:
+          $ref: '#/definitions/models.PlanExerciseInput'
+        type: array
+      title:
+        description: Optional
+        type: string
+    type: object
+  models.User:
+    properties:
+      auth_user:
+        allOf:
+        - $ref: '#/definitions/models.AuthUser'
+        description: Relationships
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      password_hash:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.WorkoutPlan:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.WorkoutPlansListView:
+    properties:
+      exercise_description:
+        type: string
+      exercise_id:
+        type: string
+      exercise_name:
+        type: string
+      plan_description:
+        type: string
+      plan_id:
+        type: string
+      plan_title:
+        type: string
+      reps:
+        type: integer
+      sets:
+        type: integer
+    type: object
+host: localhost:8585
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: This is the API documentation for PeakPulse.
+  title: PeakPulse API
+  version: "1.0"
+paths:
+  /:
+    get:
+      description: Initialize all API routes and their handlers
+      responses: {}
+      summary: Setup all routes
+      tags:
+      - routes
+  /exercises:
+    get:
+      description: Returns all exercises in the catalog along with the total count.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful response
+          schema:
+            $ref: '#/definitions/models.ExerciseListResponse'
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all exercises
+      tags:
+      - exercises
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user via Supabase Auth and returns a JWT for API
+        access.
+      parameters:
+      - description: Email and password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/models.LoginResponse'
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Authentication failed
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Log in and receive a JWT
+      tags:
+      - auth
+  /plans:
+    get:
+      description: Retrieves all workout plans for the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of plans
+          schema:
+            items:
+              $ref: '#/definitions/models.WorkoutPlansListView'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gin.H'
+      security:
+      - BearerAuth: []
+      summary: List all workout plans
+      tags:
+      - plans
+    post:
+      consumes:
+      - application/json
+      description: Creates a workout plan for the authenticated user, with a unique
+        title and a set of exercises.
+      parameters:
+      - description: Workout plan payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreatePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created plan
+          schema:
+            $ref: '#/definitions/models.WorkoutPlan'
+        "400":
+          description: Invalid request or duplicate title
+          schema:
+            $ref: '#/definitions/gin.H'
+        "401":
+          description: Unauthorized or missing user
+          schema:
+            $ref: '#/definitions/gin.H'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gin.H'
+      security:
+      - BearerAuth: []
+      summary: Create a new workout plan
+      tags:
+      - plans
+  /plans/{id}:
+    delete:
+      description: Deletes a workout plan and all its associated exercises.
+      parameters:
+      - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deletion confirmation
+          schema:
+            $ref: '#/definitions/gin.H'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/gin.H'
+        "404":
+          description: Plan not found
+          schema:
+            $ref: '#/definitions/gin.H'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gin.H'
+      security:
+      - BearerAuth: []
+      summary: Delete a workout plan
+      tags:
+      - plans
+    get:
+      description: Retrieves a single workout plan by ID, including its exercises.
+      parameters:
+      - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: The workout plan
+          schema:
+            $ref: '#/definitions/models.WorkoutPlansListView'
+        "404":
+          description: Plan not found
+          schema:
+            $ref: '#/definitions/gin.H'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gin.H'
+      security:
+      - BearerAuth: []
+      summary: Get a workout plan
+      tags:
+      - plans
+    put:
+      consumes:
+      - application/json
+      description: Updates the title, description, and exercises of an existing workout
+        plan.
+      parameters:
+      - description: Plan ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdatePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated plan
+          schema:
+            $ref: '#/definitions/gin.H'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/gin.H'
+        "404":
+          description: Plan not found
+          schema:
+            $ref: '#/definitions/gin.H'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/gin.H'
+      security:
+      - BearerAuth: []
+      summary: Update a workout plan
+      tags:
+      - plans
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account using Supabase Auth and stores no local
+        password.
+      parameters:
+      - description: Email and password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/models.SignupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Signup successful
+          schema:
+            $ref: '#/definitions/models.SignupResponse'
+        "400":
+          description: Invalid request or duplicate email
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+schemes:
+- http
+swagger: "2.0"

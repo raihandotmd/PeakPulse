@@ -8,9 +8,17 @@ import (
 	"github.com/raihandotmd/peakPulse/internal/routes"
 )
 
+// @title PeakPulse API
+// @version 1.0
+// @description This is the API documentation for PeakPulse.
+// @host localhost:8585
+// @BasePath /
+// @schemes http
+// @contact.name API Support
+// @contact.url http://www.example.com/support
+// @contact.email support@example.com
+
 func setupRouter() *gin.Engine {
-	// Disable Console Color
-	// gin.DisableConsoleColor()
 	r := gin.Default()
 
 	// Ping test

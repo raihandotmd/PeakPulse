@@ -8,6 +8,11 @@ import (
 	"github.com/raihandotmd/peakPulse/internal/middleware"
 )
 
+// Setup godoc
+// @Summary Setup all routes
+// @Description Initialize all API routes and their handlers
+// @Tags routes
+// @Router / [get]
 // Setup registers all routes on the provided router
 func Setup(r *gin.Engine) {
 	initSupabase := db.InitSupabase()

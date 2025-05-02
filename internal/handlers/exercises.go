@@ -19,23 +19,32 @@ func NewExerciseHandler(supaCli *supa.Client) *ExerciseHandler {
 	return &ExerciseHandler{Supa: supaCli}
 }
 
-// ListExercises returns all exercises
+// ListExercises godoc
+// @Summary      List all exercises
+// @Description  Returns all exercises in the catalog along with the total count.
+// @Tags         exercises
+// @Produce      json
+// @Success      200  {object}  models.ExerciseListResponse  "Successful response"
+// @Failure      500  {object}  map[string]string             "Internal server error"
+// @Router       /exercises [get]
 func (h *ExerciseHandler) ListExercises(c *gin.Context) {
 	DB := db.GetGormClient()
 
-	// Use the Exercise model to fetch all exercises
 	var exercises []models.Exercise
 	if err := DB.Find(&exercises).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch exercises"})
+		c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch exercises"})
 		return
 	}
 
-	// Get the count of exercises
 	var count int64
 	if err := DB.Model(&models.Exercise{}).Count(&count).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch exercises count"})
+		c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch exercises count"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": exercises, "count": count})
+	// Respond using the named response struct
+	c.JSON(http.StatusOK, models.ExerciseListResponse{
+		Data:  exercises,
+		Count: count,
+	})
 }

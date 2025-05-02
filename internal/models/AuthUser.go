@@ -17,3 +17,15 @@ type AuthUser struct {
 func (AuthUser) TableName() string {
 	return "auth.users"
 }
+
+// SignupRequest holds signup payload
+type SignupRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
+// LoginRequest holds login payload
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}

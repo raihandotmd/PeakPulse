@@ -22,81 +22,85 @@ func NewAuthHandler(supa *supa.Client) *AuthHandler {
 	return &AuthHandler{Supa: supa}
 }
 
-// Signup registers a new user
+// Signup godoc
+// @Summary      Register a new user
+// @Description  Creates a new user account using Supabase Auth and stores no local password.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        payload  body      models.SignupRequest   true  "Email and password"
+// @Success      201      {object}  models.SignupResponse   "Signup successful"
+// @Failure      400      {object}  models.ErrorResponse    "Invalid request or duplicate email"
+// @Failure      409      {object}  models.ErrorResponse    "Email already exists"
+// @Failure      500      {object}  models.ErrorResponse    "Internal server error"
+// @Router       /signup [post]
 func (h *AuthHandler) Signup(c *gin.Context) {
-	var body struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
+	var body models.SignupRequest
 	if err := c.BindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "Invalid request payload"})
 		return
 	}
 
-	DB := db.GetGormClient() // Get the Gorm DB instance
-	// Check if the email already exists in the database
+	DB := db.GetGormClient()
+	// Check for existing email
 	var existUser models.User
 	if err := DB.Where("email = ?", body.Email).First(&existUser).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+		c.JSON(http.StatusConflict, models.ErrorResponse{Error: "Email already exists"})
 		return
 	}
 
-	// Attempt to sign up the user
-	user, err := h.Supa.Auth.Signup(types.SignupRequest{
+	// Attempt Supabase signup
+	authResp, err := h.Supa.Auth.Signup(types.SignupRequest{
 		Email:    body.Email,
 		Password: body.Password,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sign up user"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "Failed to sign up user"})
 		return
 	}
 
-	// Successful sign-up
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Sign-up successful. Welcome!",
-		"user":    user.User,
+	c.JSON(http.StatusCreated, models.SignupResponse{
+		Message: "Sign-up successful. Welcome!",
+		User: models.User{
+			ID:    authResp.User.ID,
+			Email: authResp.User.Email,
+		},
 	})
 }
 
-// Login authenticates and returns a JWT
+// Login godoc
+// @Summary      Log in and receive a JWT
+// @Description  Authenticates a user via Supabase Auth and returns a JWT for API access.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        payload  body      models.LoginRequest    true  "Email and password"
+// @Success      200      {object}  models.LoginResponse   "Login successful"
+// @Failure      400      {object}  models.ErrorResponse   "Invalid request payload"
+// @Failure      401      {object}  models.ErrorResponse   "Authentication failed"
+// @Router       /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	type req struct{ Email, Password string }
-	var body req
+	var body models.LoginRequest
 	if err := c.BindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	sess, err := h.Supa.Auth.SignInWithEmailPassword(body.Email, body.Password)
-
 	if err != nil {
-		// Define a struct to parse the error message
-		var supabaseError struct {
-			Code      int    `json:"code"`
-			ErrorCode string `json:"error_code"`
-			Msg       string `json:"msg"`
+		// Try to extract Supabase error message
+		var supaErr struct {
+			Msg string `json:"msg"`
 		}
-
-		// Find the JSON part of the error message
-		errorMessage := err.Error()
-		startIndex := strings.Index(errorMessage, "{")
-		if startIndex != -1 {
-			jsonPart := errorMessage[startIndex:]
-
-			// Attempt to parse the JSON part
-			if jsonErr := json.Unmarshal([]byte(jsonPart), &supabaseError); jsonErr == nil {
-				// If parsing is successful, return the error message
-				c.JSON(http.StatusUnauthorized, gin.H{"error": supabaseError.Msg})
+		if idx := strings.Index(err.Error(), "{"); idx != -1 {
+			if e := json.Unmarshal([]byte(err.Error()[idx:]), &supaErr); e == nil && supaErr.Msg != "" {
+				c.JSON(http.StatusUnauthorized, models.ErrorResponse{Error: supaErr.Msg})
 				return
 			}
 		}
-
-		// If parsing fails, return the raw error message
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	// generate JWT for your API (or return Supabase access token)
-	c.JSON(http.StatusOK, gin.H{"token": sess.Session.AccessToken})
+	c.JSON(http.StatusOK, models.LoginResponse{Token: sess.Session.AccessToken})
 }
